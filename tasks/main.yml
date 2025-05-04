@@ -10,7 +10,7 @@
     update_cache: true
     cache_valid_time: 3600
   environment:
-    - NEEDRESTART_MODE: a
+    NEEDRESTART_MODE: a
 
 - name: Check if a reboot is needed for Debian and Ubuntu hosts (variant 1)
   register: reboot_required_file1
