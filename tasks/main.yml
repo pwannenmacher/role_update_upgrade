@@ -1,0 +1,65 @@
+---
+# tasks file for role_update_upgrade
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Update and upgrade apt packages
+  become: true
+  ansible.builtin.apt:
+    upgrade: "dist"
+    update_cache: true
+    cache_valid_time: 3600
+  environment:
+    - NEEDRESTART_MODE: a
+
+- name: Check if a reboot is needed for Debian and Ubuntu hosts (variant 1)
+  register: reboot_required_file1
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+    get_checksum: false
+
+#  - name: Check if a reboot is needed for Debian and Ubuntu hosts (variant 2)
+#  register: reboot_required_file2
+#  ansible.builtin.shell: test $(dpkg -l | awk '/linux-image-[0-9]/ {print $2}' | sort -V | tail -1 | sed 's/linux-image-//') = $(uname -r) || echo "reboot"
+#  changed_when: reboot_required_file2.stdout
+
+- name: Set variable whether a restart is needed
+  ansible.builtin.set_fact:
+    reboot_required: true
+  when: reboot_required_file1.stat.exists # or reboot_required_file2.stdout == 'reboot'
+
+- name: Wait for cpu to calm down if was docker restarted during upgrade
+  ansible.builtin.shell: cat /proc/loadavg | awk -F ' ' '{print $1}'
+  register: cpu_load
+  until: ((cpu_load.stdout | float) / ansible_processor_vcpus) < 0.8
+  retries: 10
+  delay: 30
+  changed_when: false
+  when: 'docker' in services and reboot_required is defined and reboot_required
+
+- name: Reboot the Debian or Ubuntu server
+  become: true
+  throttle: 2
+  ansible.builtin.reboot:
+    msg: "Reboot initiated by Ansible due to reboot required"
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  when: reboot_required is defined and reboot_required
+
+- name: Wait for cpu to calm down if was docker restarted during upgrade (after restart)
+  ansible.builtin.shell: cat /proc/loadavg | awk -F ' ' '{print $1}'
+  register: cpu_load
+  until: ((cpu_load.stdout | float) / ansible_processor_vcpus) < 0.8
+  retries: 10
+  delay: 30
+  changed_when: false
+  when: 'docker' in services andreboot_required is defined and reboot_required
+
+- name: Remove dependencies that are no longer required.
+  become: true
+  ansible.builtin.apt:
+    autoremove: true
+    autoclean: true

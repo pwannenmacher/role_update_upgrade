@@ -1,0 +1,33 @@
+---
+galaxy_info:
+  role_name: role_update_upgrade
+  namespace: pwannenmacher
+  author: Paul Wannenmacher
+  description: Installs available Updates on Debian and Ubuntu hosts
+  company: Wannenmacher
+
+  issue_tracker_url: https://github.com/pwannenmacher/role_update_upgrade
+
+  license: MIT
+
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - xenial
+        - bionic
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - stretch
+        - buster
+        - bullseye
+
+  galaxy_tags:
+    - debian
+    - ubuntu
+    - updates
+
+dependencies: []
