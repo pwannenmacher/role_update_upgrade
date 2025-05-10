@@ -29,14 +29,12 @@
   when: reboot_required_file1.stat.exists # or reboot_required_file2.stdout == 'reboot'
 
 - name: Wait for cpu to calm down if was docker restarted during upgrade
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      cat /proc/loadavg | awk -F ' ' '{print $1}'
+  ansible.builtin.command:
+    cmd: cat /proc/loadavg
   register: cpu_load
-  until: ((cpu_load.stdout | float) / ansible_processor_vcpus) < 0.8
-  retries: 10
-  delay: 30
+  until: cpu_load.stdout.split()|first|float <  0.8
+  retries: 30
+  delay: 10
   changed_when: false
   when: "'docker' in services and reboot_required is defined and reboot_required"
 
@@ -53,14 +51,12 @@
   when: reboot_required is defined and reboot_required
 
 - name: Wait for cpu to calm down if was docker restarted during upgrade (after restart)
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      cat /proc/loadavg | awk -F ' ' '{print $1}'
+  ansible.builtin.command:
+    cmd: cat /proc/loadavg
   register: cpu_load
-  until: ((cpu_load.stdout | float) / ansible_processor_vcpus) < 0.8
-  retries: 10
-  delay: 30
+  until: cpu_load.stdout.split()|first|float <  0.8
+  retries: 30
+  delay: 10
   changed_when: false
   when: "'docker' in services and reboot_required is defined and reboot_required"
 
